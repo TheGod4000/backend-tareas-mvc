@@ -1,0 +1,22 @@
+{
+  "development": {
+    "dialect": "sqlite",
+    "storage": "./database.sqlite",
+    "logging": false,
+    "seederStorage": "sequelize",
+    "seederStorageTableName": "SequelizeData"
+  },
+  "test": {
+    "dialect": "sqlite",
+    "storage": ":memory:",
+    "logging": false
+  },
+  "production": {
+    "username": "root",
+    "password": null,
+    "database": "tareas_prod",
+    "host": "127.0.0.1",
+    "dialect": "mysql",
+    "logging": false
+  }
+}

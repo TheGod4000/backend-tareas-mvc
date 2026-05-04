@@ -1,5 +1,7 @@
 const jwt    = require('jsonwebtoken');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+const { Usuario } = require('../models');
 
 const cookieBase = () => ({
   secure:   process.env.NODE_ENV === 'production',
@@ -10,21 +12,37 @@ const cookieBase = () => ({
 /**
  * POST /api/auth/login
  * Requiere header x-api-key (validado por middleware validarApiKey).
+ * Valida email + password contra la base de datos.
  * Genera JWT (HttpOnly cookie) + CSRF token (cookie legible + body).
  */
-const login = (req, res) => {
+const login = async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, password } = req.body;
 
     if (!email || email.trim() === '') {
       return res.status(400).json({ success: false, message: 'El email es requerido' });
     }
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'La contraseña es requerida' });
+    }
+
+    const usuario = await Usuario.findOne({ where: { email: email.trim().toLowerCase() } });
+    if (!usuario) {
+      return res.status(401).json({ success: false, message: 'Credenciales inválidas' });
+    }
+    if (!usuario.activo) {
+      return res.status(403).json({ success: false, message: 'Usuario inactivo. Contacte al administrador.' });
+    }
+
+    const passwordValida = await bcrypt.compare(password, usuario.password);
+    if (!passwordValida) {
+      return res.status(401).json({ success: false, message: 'Credenciales inválidas' });
+    }
 
     const csrfToken = crypto.randomBytes(32).toString('hex');
-
     const payload = {
-      id:        1,
-      email:     email.trim(),
+      id:        usuario.id,
+      email:     usuario.email,
       apiKey:    process.env.API_KEY,
       csrfToken
     };
@@ -34,16 +52,13 @@ const login = (req, res) => {
     });
 
     const opts = cookieBase();
-
-    // JWT: HttpOnly — inaccesible para JS del cliente
     res.cookie('jwt_token',  tokenJWT,  { ...opts, httpOnly: true });
-    // CSRF: no HttpOnly — el SPA lo lee para restaurar sesión tras recarga
     res.cookie('csrf_token', csrfToken, opts);
 
     res.json({
       success:   true,
       csrfToken,
-      usuario: { id: payload.id, email: payload.email }
+      usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email }
     });
   } catch (error) {
     console.error('Error en login:', error);

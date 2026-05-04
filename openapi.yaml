@@ -1,0 +1,1459 @@
+openapi: 3.0.3
+info:
+  title: API Tareas MVC
+  description: |
+    API RESTful para gestión de Tareas, Personas y Tags con autenticación JWT + CSRF.
+    
+    ## Autenticación
+    1. Obtener un JWT haciendo `POST /api/auth/login` con `x-api-key` header y `email`/`password`.
+    2. El token JWT se almacena en una cookie HttpOnly (`jwt_token`).
+    3. El token CSRF se retorna en el body y en una cookie (`csrf_token`). Incluirlo en el header `X-CSRF-Token` para todas las peticiones mutantes (POST/PUT/PATCH/DELETE) en rutas protegidas.
+    
+    ## Credenciales de prueba
+    - **Email:** `admin@tareas.com`
+    - **Contraseña:** `Admin1234!`
+    - **API Key:** `123456789`
+  version: 2.0.0
+  contact:
+    name: API Tareas MVC
+
+servers:
+  - url: http://localhost:3000
+    description: Servidor de desarrollo
+
+tags:
+  - name: Auth
+    description: Autenticación de usuarios
+  - name: Tareas
+    description: Gestión de tareas
+  - name: Personas
+    description: Gestión de personas
+  - name: Tags
+    description: Gestión de etiquetas
+  - name: Usuarios
+    description: Gestión de cuentas de usuario
+  - name: Relaciones Tarea-Persona
+    description: Endpoints para vincular tareas con personas
+  - name: Relaciones Tarea-Tag
+    description: Endpoints para vincular tareas con tags
+  - name: Relaciones Persona-Tarea
+    description: Endpoints para vincular personas con tareas (perspectiva persona)
+  - name: Relaciones Tag-Tarea
+    description: Endpoints para vincular tags con tareas (perspectiva tag)
+  - name: Relaciones Indirectas
+    description: Consultas de relaciones de segundo grado
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: jwt_token
+    apiKeyHeader:
+      type: apiKey
+      in: header
+      name: x-api-key
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+
+  schemas:
+    Tarea:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        titulo:
+          type: string
+          example: Aprender Express
+        descripcion:
+          type: string
+          nullable: true
+          example: Estudiar el framework Express para Node.js
+        completada:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TareaInput:
+      type: object
+      required:
+        - titulo
+      properties:
+        titulo:
+          type: string
+          example: Nueva tarea
+        descripcion:
+          type: string
+          nullable: true
+          example: Descripción opcional
+        completada:
+          type: boolean
+          example: false
+
+    TareaPatch:
+      type: object
+      properties:
+        titulo:
+          type: string
+          example: Título actualizado
+        descripcion:
+          type: string
+          nullable: true
+        completada:
+          type: boolean
+          example: true
+
+    Persona:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        nombre:
+          type: string
+          example: Carlos López
+        email:
+          type: string
+          format: email
+          nullable: true
+          example: carlos@ejemplo.com
+        telefono:
+          type: string
+          nullable: true
+          example: "555-0101"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PersonaInput:
+      type: object
+      required:
+        - nombre
+      properties:
+        nombre:
+          type: string
+          example: Carlos López
+        email:
+          type: string
+          format: email
+          example: carlos@ejemplo.com
+        telefono:
+          type: string
+          example: "555-0101"
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        nombre:
+          type: string
+          example: backend
+        color:
+          type: string
+          example: "#28a745"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TagInput:
+      type: object
+      required:
+        - nombre
+      properties:
+        nombre:
+          type: string
+          example: backend
+        color:
+          type: string
+          example: "#28a745"
+
+    Usuario:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        nombre:
+          type: string
+          example: Admin Sistema
+        email:
+          type: string
+          format: email
+          example: admin@tareas.com
+        activo:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UsuarioRegistro:
+      type: object
+      required:
+        - nombre
+        - email
+        - password
+      properties:
+        nombre:
+          type: string
+          example: Nuevo Usuario
+        email:
+          type: string
+          format: email
+          example: nuevo@tareas.com
+        password:
+          type: string
+          minLength: 6
+          example: "Segura123!"
+
+    UsuarioUpdate:
+      type: object
+      required:
+        - nombre
+      properties:
+        nombre:
+          type: string
+          example: Nombre Actualizado
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+
+    LoginInput:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: admin@tareas.com
+        password:
+          type: string
+          example: "Admin1234!"
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+
+    ListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            type: object
+        count:
+          type: integer
+          example: 3
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Recurso no encontrado
+
+    MessageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+
+# ─────────────────────────────────────────────
+#  PATHS
+# ─────────────────────────────────────────────
+paths:
+
+  # ── AUTH ──────────────────────────────────
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sesión
+      description: Autentica un usuario y establece cookies JWT + CSRF. Requiere el header `x-api-key`.
+      security:
+        - apiKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginInput'
+            example:
+              email: admin@tareas.com
+              password: "Admin1234!"
+      responses:
+        '200':
+          description: Login exitoso
+          headers:
+            Set-Cookie:
+              description: jwt_token (HttpOnly) y csrf_token
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  csrfToken:
+                    type: string
+                  usuario:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      nombre:
+                        type: string
+                      email:
+                        type: string
+        '400':
+          description: Campos requeridos faltantes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Usuario inactivo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Cerrar sesión
+      description: Elimina las cookies de sesión. Requiere JWT y CSRF.
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '200':
+          description: Logout exitoso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /api/auth/verify:
+    get:
+      tags: [Auth]
+      summary: Verificar sesión activa
+      description: Devuelve los datos del usuario autenticado y el CSRF token vigente.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Sesión válida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  usuario:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      email:
+                        type: string
+                  csrfToken:
+                    type: string
+        '401':
+          description: No autenticado o token expirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── TAREAS ────────────────────────────────
+  /api/tareas:
+    get:
+      tags: [Tareas]
+      summary: Listar tareas
+      description: Devuelve todas las tareas. Con `?q=` filtra por título. Con `?formato=text` devuelve texto plano.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: q
+          in: query
+          description: Filtro de búsqueda por título (insensible a mayúsculas)
+          schema:
+            type: string
+          example: MVC
+        - name: formato
+          in: query
+          description: Formato de respuesta (text = texto plano)
+          schema:
+            type: string
+            enum: [text]
+      responses:
+        '200':
+          description: Lista de tareas
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ListResponse'
+                  - properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Tarea'
+            text/plain:
+              schema:
+                type: string
+                example: "--- LISTA DE TAREAS ---\n[ ] ID: 1 - Aprender Express\n"
+
+    post:
+      tags: [Tareas]
+      summary: Crear tarea
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TareaInput'
+      responses:
+        '201':
+          description: Tarea creada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Tarea'
+        '400':
+          description: Validación fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tareas/buscar:
+    get:
+      tags: [Tareas]
+      summary: Buscar tareas por título
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          example: MVC
+      responses:
+        '200':
+          description: Resultados de búsqueda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        '400':
+          description: Parámetro q faltante
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tareas/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        example: 1
+    get:
+      tags: [Tareas]
+      summary: Obtener tarea por ID
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Tarea encontrada (incluye personas y tags asociados)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Tarea'
+        '404':
+          description: Tarea no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [Tareas]
+      summary: Actualizar tarea completa
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TareaInput'
+      responses:
+        '200':
+          description: Tarea actualizada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Tarea'
+        '400':
+          description: Validación fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Tarea no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags: [Tareas]
+      summary: Actualizar tarea parcialmente
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TareaPatch'
+      responses:
+        '200':
+          description: Tarea actualizada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Tarea'
+        '404':
+          description: Tarea no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Tareas]
+      summary: Eliminar tarea
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '200':
+          description: Tarea eliminada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Tarea'
+        '404':
+          description: Tarea no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tareas/{id}/personas:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Relaciones Tarea-Persona]
+      summary: Listar personas de una tarea
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Lista de personas asociadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        '404':
+          description: Tarea no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tareas/{id}/personas/{personaId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: personaId
+        in: path
+        required: true
+        schema:
+          type: integer
+    post:
+      tags: [Relaciones Tarea-Persona]
+      summary: Asociar persona a tarea
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '201':
+          description: Persona asociada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Tarea o persona no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Relaciones Tarea-Persona]
+      summary: Desasociar persona de tarea
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '200':
+          description: Persona desasociada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Tarea o persona no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tareas/{id}/tags:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Relaciones Tarea-Tag]
+      summary: Listar tags de una tarea
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Lista de tags asociados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        '404':
+          description: Tarea no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tareas/{id}/tags/{tagId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: tagId
+        in: path
+        required: true
+        schema:
+          type: integer
+    post:
+      tags: [Relaciones Tarea-Tag]
+      summary: Asociar tag a tarea
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '201':
+          description: Tag asociado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Tarea o tag no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Relaciones Tarea-Tag]
+      summary: Desasociar tag de tarea
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '200':
+          description: Tag desasociado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Tarea o tag no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── PERSONAS ──────────────────────────────
+  /api/personas:
+    get:
+      tags: [Personas]
+      summary: Listar personas
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Lista de personas
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ListResponse'
+                  - properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Persona'
+    post:
+      tags: [Personas]
+      summary: Crear persona
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonaInput'
+      responses:
+        '201':
+          description: Persona creada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Persona'
+        '400':
+          description: Validación fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email duplicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/personas/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Personas]
+      summary: Obtener persona por ID (incluye tareas y sus tags)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Persona encontrada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Persona'
+        '404':
+          description: Persona no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [Personas]
+      summary: Actualizar persona
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PersonaInput'
+      responses:
+        '200':
+          description: Persona actualizada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Persona'
+        '404':
+          description: Persona no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Personas]
+      summary: Eliminar persona
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '200':
+          description: Persona eliminada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Persona'
+        '404':
+          description: Persona no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/personas/{id}/tareas:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Relaciones Persona-Tarea]
+      summary: Listar tareas de una persona
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Lista de tareas de la persona (con sus tags)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        '404':
+          description: Persona no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/personas/{id}/tareas/{tareaId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: tareaId
+        in: path
+        required: true
+        schema:
+          type: integer
+    post:
+      tags: [Relaciones Persona-Tarea]
+      summary: Asociar tarea a persona
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '201':
+          description: Tarea asociada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Persona o tarea no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Relaciones Persona-Tarea]
+      summary: Desasociar tarea de persona
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '200':
+          description: Tarea desasociada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Persona o tarea no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/personas/{id}/tags:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Relaciones Indirectas]
+      summary: Todos los tags de una persona (indirecto via tareas)
+      description: Devuelve todos los tags únicos asociados a las tareas de la persona.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Lista de tags (deduplicados)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        '404':
+          description: Persona no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── TAGS ──────────────────────────────────
+  /api/tags:
+    get:
+      tags: [Tags]
+      summary: Listar tags
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Lista de tags
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ListResponse'
+                  - properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Tag'
+    post:
+      tags: [Tags]
+      summary: Crear tag
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagInput'
+      responses:
+        '201':
+          description: Tag creado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Tag'
+        '400':
+          description: Validación fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Nombre de tag duplicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tags/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Tags]
+      summary: Obtener tag por ID (incluye tareas asociadas)
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Tag encontrado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Tag'
+        '404':
+          description: Tag no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [Tags]
+      summary: Actualizar tag
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagInput'
+      responses:
+        '200':
+          description: Tag actualizado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Tag'
+        '404':
+          description: Tag no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Tags]
+      summary: Eliminar tag
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '200':
+          description: Tag eliminado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Tag'
+        '404':
+          description: Tag no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tags/{id}/tareas:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Relaciones Tag-Tarea]
+      summary: Listar tareas con este tag
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Lista de tareas (con personas asociadas)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        '404':
+          description: Tag no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tags/{id}/tareas/{tareaId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: tareaId
+        in: path
+        required: true
+        schema:
+          type: integer
+    post:
+      tags: [Relaciones Tag-Tarea]
+      summary: Asociar tarea a tag
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '201':
+          description: Tarea asociada al tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Tag o tarea no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Relaciones Tag-Tarea]
+      summary: Desasociar tarea de tag
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '200':
+          description: Tarea desasociada del tag
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Tag o tarea no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/tags/{id}/personas:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Relaciones Indirectas]
+      summary: Todas las personas relacionadas con un tag (indirecto via tareas)
+      description: Devuelve todas las personas únicas que tienen tareas asociadas a este tag.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Lista de personas (deduplicadas)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        '404':
+          description: Tag no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ── USUARIOS ──────────────────────────────
+  /api/usuarios:
+    post:
+      tags: [Usuarios]
+      summary: Registrar nuevo usuario
+      description: Crea un nuevo usuario. Requiere `x-api-key` pero NO necesita JWT.
+      security:
+        - apiKeyHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioRegistro'
+      responses:
+        '201':
+          description: Usuario registrado (sin campo password)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Usuario'
+        '400':
+          description: Validación fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email duplicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    get:
+      tags: [Usuarios]
+      summary: Listar usuarios
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Lista de usuarios (sin password)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ListResponse'
+                  - properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Usuario'
+
+  /api/usuarios/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Usuarios]
+      summary: Obtener usuario por ID
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Usuario encontrado (sin password)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Usuario'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [Usuarios]
+      summary: Modificar usuario
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioUpdate'
+      responses:
+        '200':
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Usuario'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Usuarios]
+      summary: Eliminar usuario
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '200':
+          description: Usuario eliminado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - properties:
+                      data:
+                        $ref: '#/components/schemas/Usuario'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/usuarios/{id}/activar:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    patch:
+      tags: [Usuarios]
+      summary: Activar usuario
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '200':
+          description: Usuario activado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/usuarios/{id}/desactivar:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    patch:
+      tags: [Usuarios]
+      summary: Desactivar usuario
+      description: Desactiva el usuario sin eliminarlo (eliminación lógica).
+      security:
+        - cookieAuth: []
+        - csrfToken: []
+      responses:
+        '200':
+          description: Usuario desactivado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '404':
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

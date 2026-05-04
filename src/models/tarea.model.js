@@ -1,52 +1,32 @@
-let tareas = [
-  { id: 1, titulo: 'Aprender Express', completada: false },
-  { id: 2, titulo: 'Implementar MVC', completada: false },
-  { id: 3, titulo: 'Probar API con Postman', completada: true }
-];
+'use strict';
 
-let idActual = 4;
+const { DataTypes } = require('sequelize');
 
-const obtenerTodas = () => tareas;
+module.exports = (sequelize) => {
+  const Tarea = sequelize.define('Tarea', {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
+    titulo: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+      validate: { notEmpty: { msg: 'El título no puede estar vacío' } }
+    },
+    descripcion: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    completada: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    }
+  }, {
+    tableName: 'Tareas',
+    timestamps: true
+  });
 
-const obtenerPorId = (id) => tareas.find(tarea => tarea.id === id);
-
-// Actividad 3: Búsqueda por título (case insensitive)
-const buscarPorTitulo = (query) => {
-  const queryMinusculas = query.toLowerCase();
-  return tareas.filter(tarea => tarea.titulo.toLowerCase().includes(queryMinusculas));
-};
-
-const crear = (datosTarea) => {
-  const nuevaTarea = {
-    id: idActual++,
-    titulo: datosTarea.titulo,
-    completada: datosTarea.completada || false
-  };
-  tareas.push(nuevaTarea);
-  return nuevaTarea;
-};
-
-const actualizarCompleta = (id, datosTarea) => {
-  const indice = tareas.findIndex(t => t.id === id);
-  if (indice === -1) return null;
-  tareas[indice] = { id, titulo: datosTarea.titulo, completada: datosTarea.completada || false };
-  return tareas[indice];
-};
-
-const actualizarParcial = (id, datosParciales) => {
-  const indice = tareas.findIndex(t => t.id === id);
-  if (indice === -1) return null;
-  tareas[indice] = { ...tareas[indice], ...datosParciales, id };
-  return tareas[indice];
-};
-
-const eliminar = (id) => {
-  const indice = tareas.findIndex(t => t.id === id);
-  if (indice === -1) return null;
-  return tareas.splice(indice, 1)[0];
-};
-
-module.exports = {
-  obtenerTodas, obtenerPorId, buscarPorTitulo, crear, 
-  actualizarCompleta, actualizarParcial, eliminar
+  return Tarea;
 };

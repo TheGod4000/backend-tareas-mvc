@@ -2,8 +2,14 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../.env.loc
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const tareaRoutes = require('./routes/tarea.routes');
-const authRoutes  = require('./routes/auth.routes');
+
+const { sequelize } = require('./models');
+
+const tareaRoutes   = require('./routes/tarea.routes');
+const personaRoutes = require('./routes/persona.routes');
+const tagRoutes     = require('./routes/tag.routes');
+const usuarioRoutes = require('./routes/usuario.routes');
+const authRoutes    = require('./routes/auth.routes');
 const { verificarToken, verificarCSRF } = require('./middleware/auth');
 
 const app = express();
@@ -16,11 +22,19 @@ app.use(cors({
   credentials: true
 }));
 
+// Inicializar la base de datos (crea tablas si no existen)
+sequelize.sync()
+  .then(() => console.log('Base de datos sincronizada'))
+  .catch(err => console.error('Error al sincronizar la base de datos:', err));
+
 // Rutas públicas
-app.use('/api/auth', authRoutes);
+app.use('/api/auth',     authRoutes);
+app.use('/api/usuarios', usuarioRoutes);
 
 // Rutas protegidas — JWT + CSRF en mutaciones
-app.use('/api/tareas', verificarToken, verificarCSRF, tareaRoutes);
+app.use('/api/tareas',   verificarToken, verificarCSRF, tareaRoutes);
+app.use('/api/personas', verificarToken, verificarCSRF, personaRoutes);
+app.use('/api/tags',     verificarToken, verificarCSRF, tagRoutes);
 
 app.use((req, res) => res.status(404).json({ success: false, message: 'Ruta no encontrada' }));
 
