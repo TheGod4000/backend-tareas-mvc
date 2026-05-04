@@ -112,6 +112,7 @@ const googleCallback = (req, res) => {
     const payload = {
       id:         usuario.id,
       email:      usuario.email,
+      apiKey:     process.env.API_KEY,
       googleAuth: true,
       csrfToken
     };
