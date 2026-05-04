@@ -95,4 +95,41 @@ const verificarAuth = (req, res) => {
   });
 };
 
-module.exports = { login, logout, verificarAuth };
+/**
+ * GET /api/auth/google/callback (después del redirect de Google)
+ * Passport ya autenticó al usuario. Se emite JWT + CSRF y redirige al frontend.
+ */
+const googleCallback = (req, res) => {
+  try {
+    const usuario = req.user; // inyectado por Passport
+    if (!usuario || !usuario.activo) {
+      return res.redirect(
+        `${process.env.CLIENT_URL}/?error=google_auth_failed`
+      );
+    }
+
+    const csrfToken = crypto.randomBytes(32).toString('hex');
+    const payload = {
+      id:         usuario.id,
+      email:      usuario.email,
+      googleAuth: true,
+      csrfToken
+    };
+
+    const tokenJWT = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '1h'
+    });
+
+    const opts = cookieBase();
+    res.cookie('jwt_token',  tokenJWT,  { ...opts, httpOnly: true });
+    res.cookie('csrf_token', csrfToken, opts);
+
+    // Redirige al frontend con el CSRF token en la URL para que lo lea en localStorage
+    res.redirect(`${process.env.CLIENT_URL}/?csrf=${csrfToken}`);
+  } catch (error) {
+    console.error('Error en googleCallback:', error);
+    res.redirect(`${process.env.CLIENT_URL}/?error=server_error`);
+  }
+};
+
+module.exports = { login, logout, verificarAuth, googleCallback };

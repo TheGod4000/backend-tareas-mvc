@@ -1,7 +1,9 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env.local') });
-const express = require('express');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
+const express       = require('express');
+const cors          = require('cors');
+const cookieParser  = require('cookie-parser');
+const session       = require('express-session');
+const passport      = require('./config/passport');
 
 const { sequelize } = require('./models');
 
@@ -18,9 +20,24 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: process.env.CLIENT_URL || 'https://localhost:5173',
   credentials: true
 }));
+
+// express-session requerido por Passport para el flujo OAuth (solo para el handshake)
+app.use(session({
+  secret:            process.env.JWT_SECRET || 'session_secret',
+  resave:            false,
+  saveUninitialized: false,
+  cookie: {
+    secure:   true,
+    httpOnly: true,
+    sameSite: 'lax'
+  }
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Inicializar la base de datos (crea tablas si no existen)
 sequelize.sync()

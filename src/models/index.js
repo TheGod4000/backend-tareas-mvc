@@ -10,12 +10,13 @@ const sequelize = new Sequelize(
   config
 );
 
-const Tarea       = require('./tarea.model')(sequelize);
-const Persona     = require('./persona.model')(sequelize);
-const Tag         = require('./tag.model')(sequelize);
-const Usuario     = require('./usuario.model')(sequelize);
-const PersonaTarea = require('./personatarea.model')(sequelize);
-const TareaTag    = require('./tareatag.model')(sequelize);
+const Tarea          = require('./tarea.model')(sequelize);
+const Persona        = require('./persona.model')(sequelize);
+const Tag            = require('./tag.model')(sequelize);
+const Usuario        = require('./usuario.model')(sequelize);
+const GoogleUsuario  = require('./googleusuario.model')(sequelize);
+const PersonaTarea   = require('./personatarea.model')(sequelize);
+const TareaTag       = require('./tareatag.model')(sequelize);
 
 // Relaciones N:M
 Persona.belongsToMany(Tarea, {
@@ -32,4 +33,4 @@ Tag.belongsToMany(Tarea, {
   through: TareaTag, foreignKey: 'tagId', otherKey: 'tareaId', as: 'tareas'
 });
 
-module.exports = { sequelize, Sequelize, Tarea, Persona, Tag, Usuario, PersonaTarea, TareaTag };
+module.exports = { sequelize, Sequelize, Tarea, Persona, Tag, Usuario, GoogleUsuario, PersonaTarea, TareaTag };
