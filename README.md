@@ -1,117 +1,161 @@
-# API Tareas MVC
+# Task Management System
 
-API RESTful para gestión de Tareas, Personas y Tags con autenticación JWT + CSRF, construida con Express.js y Sequelize (SQLite).
+A full-stack task manager with two roles (Admin and User), JWT authentication, CSRF
+protection (double-submit cookie), role-based access control, and a comprehensive
+Playwright E2E test suite.
 
-## Tecnologías
-
-- **Express.js** — Framework HTTP
-- **Sequelize 6** — ORM con dialectos SQLite / MySQL
-- **SQLite3** — Base de datos de desarrollo (sin servidor externo)
-- **bcryptjs** — Hash de contraseñas
-- **JWT + CSRF** — Autenticación y protección contra CSRF
-
-## Instalación y puesta en marcha
-
-```bash
-# 1. Instalar dependencias
-npm install
-
-# 2. Crear tablas (migraciones)
-npm run db:migrate
-
-# 3. Cargar datos de prueba (seeders)
-npm run db:seed
-
-# 4. Iniciar servidor de desarrollo
-npm run dev
+```
+backend-tareas-mvc/        ← Express 5 + Sequelize + SQLite + Playwright (this folder)
+APIRest/frontend-tareas/   ← Vue 3 + Vuetify 3 + Vite SPA
 ```
 
-El servidor queda disponible en `http://localhost:3000`.
+## Project tree (source-only)
 
-## Credenciales de prueba (después de correr seeders)
+```
+backend-tareas-mvc/
+├── server.js
+├── playwright.config.js
+├── src/
+│   ├── app.js
+│   ├── seed.js
+│   ├── config/{env.js, database.js}
+│   ├── models/{index.js, User.js, Task.js, Tag.js}
+│   ├── middleware/{auth.js, csrf.js, rbac.js, errorHandler.js}
+│   ├── services/{authService.js, userService.js, taskService.js, tagService.js, searchService.js}
+│   ├── controllers/{authController.js, userController.js, taskController.js, tagController.js, searchController.js}
+│   ├── routes/{index.js, authRoutes.js, userRoutes.js, taskRoutes.js, tagRoutes.js, searchRoutes.js}
+│   └── utils/{jwt.js, password.js}
+└── tests/e2e/
+    ├── _helpers/{api.js, ui.js}
+    ├── auth.spec.js
+    ├── admin-users-crud.spec.js
+    ├── tasks-crud.spec.js
+    ├── tags-crud.spec.js
+    ├── multi-tag-search.spec.js
+    ├── admin-advanced-search.spec.js
+    ├── csrf.spec.js
+    └── rbac.spec.js
 
-| Usuario          | Email                | Contraseña     | Estado   |
-|------------------|----------------------|----------------|----------|
-| Admin Sistema    | admin@tareas.com     | Admin1234!     | activo   |
-| María García     | maria@tareas.com     | Maria1234!     | activo   |
-| Usuario Inactivo | inactivo@tareas.com  | Inactivo1234!  | inactivo |
+APIRest/frontend-tareas/
+├── index.html
+├── vite.config.js
+└── src/
+    ├── main.js
+    ├── App.vue
+    ├── plugins/vuetify.js
+    ├── api/{http.js, auth.js, users.js, tasks.js, tags.js, search.js}
+    ├── store/auth.js
+    ├── router/index.js
+    ├── views/{LoginView.vue, TasksView.vue, TagsView.vue,
+    │          AdminUsersView.vue, AdvancedSearchView.vue, NotFoundView.vue}
+    └── components/{TaskFormDialog.vue, UserFormDialog.vue}
+```
 
-**API Key de desarrollo:** `123456789`
+## Default credentials (seeded on first start)
 
-## Scripts disponibles
+| Role  | Username | Password    |
+| ----- | -------- | ----------- |
+| Admin | `admin`  | `Admin123!` |
+| User  | `user`   | `User123!`  |
 
-| Comando                 | Descripción                                 |
-|-------------------------|---------------------------------------------|
-| `npm run dev`           | Inicia con nodemon (recarga automática)     |
-| `npm start`             | Inicia en modo producción                   |
-| `npm run db:migrate`    | Ejecuta migraciones pendientes              |
-| `npm run db:seed`       | Inserta datos de prueba                     |
-| `npm run db:reset`      | Revierte todo y recrea desde cero           |
+The seed also inserts four tags (`work`, `home`, `urgent`, `low`) and one sample task
+for `user` titled "Sample task" tagged `work` + `urgent`.
 
-## Documentación OpenAPI
+## Local execution
 
-El archivo `openapi.yaml` contiene la especificación OpenAPI 3.0 completa.
-Se puede visualizar en [Swagger Editor](https://editor.swagger.io/).
+### 1. Install (first run only)
 
-## Endpoints
+```bash
+# Backend (deps already installed in node_modules; re-run if needed):
+cd backend-tareas-mvc
+npm install
+npx playwright install chromium     # for E2E
 
-### Autenticación (`/api/auth`)
-| Método | Ruta               | Descripción                        |
-|--------|--------------------|------------------------------------|
-| POST   | `/login`           | Login (requiere `x-api-key`)       |
-| POST   | `/logout`          | Cierra sesión                      |
-| GET    | `/verify`          | Verifica sesión activa             |
+# Frontend — install vue-router and axios that we added:
+cd ../APIRest/frontend-tareas
+npm install
+```
 
-### Tareas (`/api/tareas`) — JWT + CSRF
-| Método | Ruta                             | Descripción                          |
-|--------|----------------------------------|--------------------------------------|
-| GET    | `/`                              | Listar (`?q=` búsqueda, `?formato=text`) |
-| GET    | `/buscar?q=`                     | Búsqueda explícita por título        |
-| GET    | `/:id`                           | Detalle (incluye personas y tags)    |
-| POST   | `/`                              | Crear tarea                          |
-| PUT    | `/:id`                           | Actualizar completo                  |
-| PATCH  | `/:id`                           | Actualizar parcial                   |
-| DELETE | `/:id`                           | Eliminar                             |
-| GET    | `/:id/personas`                  | Personas de una tarea                |
-| POST   | `/:id/personas/:personaId`       | Vincular persona                     |
-| DELETE | `/:id/personas/:personaId`       | Desvincular persona                  |
-| GET    | `/:id/tags`                      | Tags de una tarea                    |
-| POST   | `/:id/tags/:tagId`               | Vincular tag                         |
-| DELETE | `/:id/tags/:tagId`               | Desvincular tag                      |
+### 2. Start the backend (terminal #1)
 
-### Personas (`/api/personas`) — JWT + CSRF
-| Método | Ruta                             | Descripción                          |
-|--------|----------------------------------|--------------------------------------|
-| GET    | `/`                              | Listar personas                      |
-| GET    | `/:id`                           | Detalle (incluye tareas)             |
-| POST   | `/`                              | Crear persona                        |
-| PUT    | `/:id`                           | Actualizar                           |
-| DELETE | `/:id`                           | Eliminar                             |
-| GET    | `/:id/tareas`                    | Tareas de una persona (con tags)     |
-| POST   | `/:id/tareas/:tareaId`           | Vincular tarea                       |
-| DELETE | `/:id/tareas/:tareaId`           | Desvincular tarea                    |
-| GET    | `/:id/tags`                      | Tags indirectos via tareas           |
+```bash
+cd backend-tareas-mvc
+npm start
+# → listens on http://localhost:3000
+# On first start it creates database.sqlite, runs migrations (sync), and seeds.
+```
 
-### Tags (`/api/tags`) — JWT + CSRF
-| Método | Ruta                             | Descripción                          |
-|--------|----------------------------------|--------------------------------------|
-| GET    | `/`                              | Listar tags                          |
-| GET    | `/:id`                           | Detalle (incluye tareas)             |
-| POST   | `/`                              | Crear tag                            |
-| PUT    | `/:id`                           | Actualizar                           |
-| DELETE | `/:id`                           | Eliminar                             |
-| GET    | `/:id/tareas`                    | Tareas con este tag                  |
-| POST   | `/:id/tareas/:tareaId`           | Vincular tarea                       |
-| DELETE | `/:id/tareas/:tareaId`           | Desvincular tarea                    |
-| GET    | `/:id/personas`                  | Personas indirectas via tareas       |
+### 3. Start the frontend (terminal #2)
 
-### Usuarios (`/api/usuarios`)
-| Método | Ruta                | Auth requerida          | Descripción            |
-|--------|---------------------|-------------------------|------------------------|
-| POST   | `/`                 | x-api-key               | Registrar usuario      |
-| GET    | `/`                 | JWT                     | Listar usuarios        |
-| GET    | `/:id`              | JWT                     | Obtener usuario        |
-| PUT    | `/:id`              | JWT + CSRF              | Modificar usuario      |
-| DELETE | `/:id`              | JWT + CSRF              | Eliminar usuario       |
-| PATCH  | `/:id/activar`      | JWT + CSRF              | Activar usuario        |
-| PATCH  | `/:id/desactivar`   | JWT + CSRF              | Desactivar usuario     |
+```bash
+cd APIRest/frontend-tareas
+npm run dev
+# → opens http://localhost:5173
+```
+
+### 4. Run the E2E test suite (terminal #3, both servers up)
+
+```bash
+cd backend-tareas-mvc
+npx playwright test                # headless run
+npx playwright test --headed       # watch the browser
+npx playwright show-report         # open the HTML report afterwards
+```
+
+## API surface (JSON, prefixed with `/api`)
+
+| Method | Path                                            | Auth   |
+| ------ | ----------------------------------------------- | ------ |
+| GET    | `/csrf`                                         | public |
+| POST   | `/auth/login`                                   | public |
+| POST   | `/auth/logout`                                  | public |
+| GET    | `/auth/me`                                      | auth   |
+| POST   | `/auth/register`                                | admin  |
+| GET    | `/users`, `/users/:id`                          | admin  |
+| POST   | `/users`                                        | admin  |
+| PUT    | `/users/:id`                                    | admin  |
+| DELETE | `/users/:id`                                    | admin  |
+| GET    | `/tasks`, `/tasks/:id`                          | auth   |
+| POST   | `/tasks`                                        | auth   |
+| PUT    | `/tasks/:id`                                    | auth   |
+| DELETE | `/tasks/:id`                                    | auth   |
+| GET    | `/tasks/search?tags=a,b&mode=and\|or`           | auth   |
+| GET    | `/tags`                                         | auth   |
+| POST   | `/tags`                                         | auth   |
+| PUT    | `/tags/:id`                                     | admin  |
+| DELETE | `/tags/:id`                                     | admin  |
+| GET    | `/admin/search/users-by-tags?tags=a,b&mode=…`   | admin  |
+| GET    | `/admin/search/tasks-by-tags?tags=a,b&mode=…`   | admin  |
+| GET    | `/admin/search/tags-by-users?users=u1&mode=…`   | admin  |
+
+## Security notes
+
+- **JWT** — HS256, 8-hour expiry. Stored in an `HttpOnly`, `SameSite=lax` cookie
+  named `access_token`. Never exposed to JavaScript.
+- **CSRF** — Double-submit cookie. Server sets a non-HttpOnly cookie
+  `csrf_token` on `GET /api/csrf` and on every successful login. The SPA reads
+  the cookie and sends its value in the `x-csrf-token` HTTP header for every
+  POST/PUT/PATCH/DELETE. The server compares cookie vs header with
+  `crypto.timingSafeEqual`. The login and logout endpoints are exempt from the
+  CSRF check (login has no prior session; logout is idempotent).
+- **RBAC** — `requireAuth` then `requireRole('admin')`. The frontend hides
+  admin views from regular users; the backend enforces the same gate
+  independently — UI bypassing returns `403`.
+- **Passwords** — Hashed with `bcryptjs` (10 rounds). `passwordHash` is stripped
+  from every response by the User model's `toJSON`.
+
+## Environment overrides (optional)
+
+Create `backend-tareas-mvc/.env` to override defaults:
+
+```
+PORT=3000
+JWT_SECRET=replace-me-in-production
+JWT_EXPIRES_IN=8h
+DB_STORAGE=./database.sqlite
+```
+
+## Resetting state
+
+Delete `backend-tareas-mvc/database.sqlite` and restart the backend. The seed
+re-creates the default users, tags, and sample task.
