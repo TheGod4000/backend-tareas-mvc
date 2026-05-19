@@ -11,7 +11,7 @@ async function start() {
     // Set DB_RESET=1 to drop & rebuild all tables (useful when an old DB file
     // from a previous project has a stale schema that `alter` can't migrate).
     const force = process.env.DB_RESET === '1';
-    await sequelize.sync(force ? { force: true } : { alter: true });
+    //await sequelize.sync(force ? { force: true } : { alter: true });
     await seed();
     app.listen(env.PORT, () => {
       // eslint-disable-next-line no-console

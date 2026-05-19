@@ -10,7 +10,9 @@
     "db:migrate:undo": "sequelize-cli db:migrate:undo:all",
     "db:seed": "sequelize-cli db:seed:all",
     "db:seed:undo": "sequelize-cli db:seed:undo:all",
-    "db:reset": "npm run db:migrate:undo && npm run db:migrate && npm run db:seed"
+    "db:drop": "node -e \"require('fs').rmSync('./database.sqlite',{force:true});require('fs').rmSync('./database.sqlite-journal',{force:true});console.log('[db] dropped database.sqlite');\"",
+    "db:reset": "npm run db:drop && npm run db:migrate",
+    "test:e2e": "playwright test"
   },
   "keywords": [],
   "author": "",

@@ -76,16 +76,30 @@ cd ../APIRest/frontend-tareas
 npm install
 ```
 
-### 2. Start the backend (terminal #1)
+### 2. Initialise the database (one-time, or after schema changes)
+
+```bash
+cd backend-tareas-mvc
+npm run db:migrate
+# → creates database.sqlite with the users / tags / tasks / task_tags tables
+```
+
+If you previously had a stale `database.sqlite` from a different project, wipe and re-migrate:
+
+```bash
+npm run db:reset    # drops database.sqlite, then re-runs migrations
+```
+
+### 3. Start the backend (terminal #1)
 
 ```bash
 cd backend-tareas-mvc
 npm start
 # → listens on http://localhost:3000
-# On first start it creates database.sqlite, runs migrations (sync), and seeds.
+# Idempotent runtime seed inserts the default admin/user/tags/sample task if missing.
 ```
 
-### 3. Start the frontend (terminal #2)
+### 4. Start the frontend (terminal #2)
 
 ```bash
 cd APIRest/frontend-tareas
@@ -93,7 +107,7 @@ npm run dev
 # → opens http://localhost:5173
 ```
 
-### 4. Run the E2E test suite (terminal #3, both servers up)
+### 5. Run the E2E test suite (terminal #3, both servers up)
 
 ```bash
 cd backend-tareas-mvc
@@ -155,7 +169,16 @@ JWT_EXPIRES_IN=8h
 DB_STORAGE=./database.sqlite
 ```
 
-## Resetting state
+## Database lifecycle
 
-Delete `backend-tareas-mvc/database.sqlite` and restart the backend. The seed
-re-creates the default users, tags, and sample task.
+| Command                 | What it does                                                |
+| ----------------------- | ----------------------------------------------------------- |
+| `npm run db:migrate`    | Apply pending migrations from `./migrations/`               |
+| `npm run db:migrate:undo` | Undo all migrations (drops every managed table)            |
+| `npm run db:drop`       | Delete `database.sqlite` (and its journal)                  |
+| `npm run db:reset`      | `db:drop` then `db:migrate` — clean schema, idempotent      |
+| `npm start`             | Boots the server; runs the idempotent runtime seed          |
+
+Add new schema changes as a new file in `./migrations/` (timestamped name) and
+run `npm run db:migrate`. The runtime seed in `src/seed.js` only inserts the
+defaults when missing, so it's safe to re-run on every boot.
